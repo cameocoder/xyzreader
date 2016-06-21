@@ -1,0 +1,16 @@
+.gradle
+/local.properties
+.DS_Store
+/captures
+
+# idea project files
+.idea/
+.idea/.name
+*.iml
+*.ipr
+*.iws
+
+##Gradle-based build
+.gradle
+build/
+
