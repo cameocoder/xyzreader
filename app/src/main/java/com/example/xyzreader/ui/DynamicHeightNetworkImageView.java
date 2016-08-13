@@ -2,10 +2,9 @@ package com.example.xyzreader.ui;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.widget.ImageView;
 
-import com.android.volley.toolbox.NetworkImageView;
-
-public class DynamicHeightNetworkImageView extends NetworkImageView {
+public class DynamicHeightNetworkImageView extends ImageView {
     private float mAspectRatio = 1.5f;
 
     public DynamicHeightNetworkImageView(Context context) {
@@ -28,7 +27,8 @@ public class DynamicHeightNetworkImageView extends NetworkImageView {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int measuredWidth = getMeasuredWidth();
-        setMeasuredDimension(measuredWidth, (int) (measuredWidth / mAspectRatio));
+        int aspectHeight = (int) (MeasureSpec.getSize(widthMeasureSpec) * mAspectRatio);
+        int aspectHeightSpec = MeasureSpec.makeMeasureSpec(aspectHeight, MeasureSpec.EXACTLY);
+        setMeasuredDimension(widthMeasureSpec, aspectHeightSpec);
     }
 }
