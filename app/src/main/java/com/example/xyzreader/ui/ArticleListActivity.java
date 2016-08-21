@@ -7,7 +7,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
@@ -17,6 +19,7 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
@@ -34,20 +37,20 @@ import com.squareup.picasso.Picasso;
 public class ArticleListActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor> {
 
-    private static final String TAG = "ArticleListActivity";
+    private static final String TAG = ArticleListActivity.class.getSimpleName();
 
-    private Toolbar toolbar;
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
+    private boolean detailsActivityStarted;
+    private boolean isRefreshing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_list);
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
 
@@ -64,10 +67,17 @@ public class ArticleListActivity extends AppCompatActivity implements
         if (savedInstanceState == null) {
             refresh();
         }
+
     }
 
     private void refresh() {
         startService(new Intent(this, UpdaterService.class));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        detailsActivityStarted = false;
     }
 
     @Override
@@ -83,21 +93,20 @@ public class ArticleListActivity extends AppCompatActivity implements
         unregisterReceiver(mRefreshingReceiver);
     }
 
-    private boolean mIsRefreshing = false;
 
     private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (UpdaterService.BROADCAST_ACTION_STATE_CHANGE.equals(intent.getAction())) {
-                mIsRefreshing = intent.getBooleanExtra(UpdaterService.EXTRA_REFRESHING, false);
+                isRefreshing = intent.getBooleanExtra(UpdaterService.EXTRA_REFRESHING, false);
                 updateRefreshingUI();
             }
         }
     };
 
     private void updateRefreshingUI() {
-        Log.d(TAG, "isRefreshing = " + mIsRefreshing);
-        mSwipeRefreshLayout.setRefreshing(mIsRefreshing);
+        Log.d(TAG, "isRefreshing = " + isRefreshing);
+        mSwipeRefreshLayout.setRefreshing(isRefreshing);
     }
 
     @Override
@@ -141,8 +150,23 @@ public class ArticleListActivity extends AppCompatActivity implements
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    startActivity(new Intent(Intent.ACTION_VIEW,
-                            ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))));
+                    if (isRefreshing || detailsActivityStarted) {
+                        return;
+                    }
+                    final int position = vh.getAdapterPosition();
+                    Intent intent = new Intent(Intent.ACTION_VIEW,
+                            ItemsContract.Items.buildItemUri(getItemId(position)));
+                    intent.putExtra(ArticleDetailActivity.SELECTED_ARTICLE_POSITION, position);
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+
+                        ActivityOptionsCompat options = ActivityOptionsCompat.
+                                makeSceneTransitionAnimation(ArticleListActivity.this, vh.thumbnailView, vh.thumbnailView.getTransitionName());
+                        startActivity(intent, options.toBundle());
+                    } else {
+                        startActivity(intent);
+                    }
+                    detailsActivityStarted = true;
                 }
             });
             return vh;
@@ -152,7 +176,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         public void onBindViewHolder(ViewHolder holder, int position) {
             mCursor.moveToPosition(position);
             holder.titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
-            String subTitle =  DateUtils.getRelativeTimeSpanString(
+            String subTitle = DateUtils.getRelativeTimeSpanString(
                     mCursor.getLong(ArticleLoader.Query.PUBLISHED_DATE),
                     System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
                     DateUtils.FORMAT_ABBREV_ALL).toString()
@@ -163,6 +187,11 @@ public class ArticleListActivity extends AppCompatActivity implements
 //            holder.thumbnailView.setAspectRatio(aspectRatio);
             String imageUrl = mCursor.getString(ArticleLoader.Query.THUMB_URL);
             Picasso.with(holder.thumbnailView.getContext()).load(imageUrl).into(holder.thumbnailView);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                final long itemId = mCursor.getLong(ArticleLoader.Query._ID);
+                holder.thumbnailView.setTransitionName(getString(R.string.transition_image) + "_" + itemId);
+            }
+
         }
 
         @Override
@@ -172,13 +201,13 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public DynamicHeightNetworkImageView thumbnailView;
+        public ImageView thumbnailView;
         public TextView titleView;
         public TextView subtitleView;
 
         public ViewHolder(View view) {
             super(view);
-            thumbnailView = (DynamicHeightNetworkImageView) view.findViewById(R.id.thumbnail);
+            thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
             titleView = (TextView) view.findViewById(R.id.article_title);
             subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
         }

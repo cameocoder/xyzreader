@@ -27,4 +27,11 @@
     <color name="theme_primary_dark">#04561A</color>
     <color name="theme_accent">#04561A</color>
     <color name="ltgray">#ffe0e0e0</color>
+
+    <color name="semi_transparent_toolbar">#22000000</color>
+
+    <color name="article_detail_metabar">#515151</color>
+    <color name="article_detail_title">#ffffff</color>
+    <color name="article_detail_byline">#8fff</color>
+    <color name="article_detail_body">#ffe0e0e0</color>
 </resources>
