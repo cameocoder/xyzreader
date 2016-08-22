@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -51,6 +52,11 @@ public class ArticleListActivity extends AppCompatActivity implements
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayShowHomeEnabled(true);
+            actionBar.setIcon(R.mipmap.ic_launcher);
+        }
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
 
@@ -94,7 +100,7 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
 
-    private BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mRefreshingReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (UpdaterService.BROADCAST_ACTION_STATE_CHANGE.equals(intent.getAction())) {
@@ -183,7 +189,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                     + " by "
                     + mCursor.getString(ArticleLoader.Query.AUTHOR);
             holder.subtitleView.setText(subTitle);
-            float aspectRatio = mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO);
+//            float aspectRatio = mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO);
 //            holder.thumbnailView.setAspectRatio(aspectRatio);
             String imageUrl = mCursor.getString(ArticleLoader.Query.THUMB_URL);
             Picasso.with(holder.thumbnailView.getContext()).load(imageUrl).into(holder.thumbnailView);

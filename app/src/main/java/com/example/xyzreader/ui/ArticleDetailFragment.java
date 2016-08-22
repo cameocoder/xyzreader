@@ -1,5 +1,6 @@
 package com.example.xyzreader.ui;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.Intent;
@@ -49,10 +50,8 @@ public class ArticleDetailFragment extends Fragment implements
     private View mRootView;
     private NestedScrollView mScrollView;
 
-    private int mTopInset;
     private View mPhotoContainerView;
     private ImageView photoView;
-    private View articleContainerView;
     private View articleTitleContainerView;
     private View fabView;
     private int mScrollY;
@@ -80,17 +79,9 @@ public class ArticleDetailFragment extends Fragment implements
         if (getArguments().containsKey(ARG_ITEM_ID)) {
             mItemId = getArguments().getLong(ARG_ITEM_ID);
         }
-
+        Log.d(TAG, "itemId = " + mItemId);
         mIsCard = getResources().getBoolean(R.bool.detail_is_card);
         setHasOptionsMenu(true);
-    }
-
-    public ArticleDetailActivity getActivityCast() {
-        return (ArticleDetailActivity) getActivity();
-    }
-
-    public ImageView getPhotoView() {
-        return photoView;
     }
 
     @Override
@@ -106,7 +97,7 @@ public class ArticleDetailFragment extends Fragment implements
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
         mScrollView = (NestedScrollView) mRootView.findViewById(R.id.scrollview);
         mScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
@@ -121,7 +112,6 @@ public class ArticleDetailFragment extends Fragment implements
 
         fabView = mRootView.findViewById(R.id.share_fab);
 
-        articleContainerView = mRootView.findViewById(R.id.article_container);
         articleTitleContainerView = mRootView.findViewById(R.id.meta_bar);
 
         bindViews();
@@ -176,18 +166,23 @@ public class ArticleDetailFragment extends Fragment implements
     }
 
     private void setPalette() {
+        // TODO: Investigate delay setting status bar color.  Perhaps get palette from
+        // already loaded thumbnail?
         Bitmap bitmap = ((BitmapDrawable) photoView.getDrawable()).getBitmap();
         Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
             @Override
             public void onGenerated(Palette palette) {
-                int darkMutedColor = palette.getDarkMutedColor(
-                        ContextCompat.getColor(getActivity(), R.color.theme_primary_dark));
-                articleTitleContainerView.setBackgroundColor(darkMutedColor);
-                if (Build.VERSION.SDK_INT >= 21) {
-                    // http://stackoverflow.com/questions/26702000/change-status-bar-color-with-appcompat-actionbaractivity
-                    Window window = getActivity().getWindow();
-                    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                    window.setStatusBarColor(darkMutedColor);
+                Activity activity = getActivity();
+                if (activity != null) {
+                    int darkMutedColor = palette.getDarkMutedColor(
+                            ContextCompat.getColor(activity, R.color.theme_primary_dark));
+                    articleTitleContainerView.setBackgroundColor(darkMutedColor);
+                    if (Build.VERSION.SDK_INT >= 21) {
+                        // http://stackoverflow.com/questions/26702000/change-status-bar-color-with-appcompat-actionbaractivity
+                        Window window = activity.getWindow();
+                        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                        window.setStatusBarColor(darkMutedColor);
+                    }
                 }
             }
         });

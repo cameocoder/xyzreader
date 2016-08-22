@@ -1,6 +1,5 @@
 package com.example.xyzreader.ui;
 
-import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
@@ -11,21 +10,16 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.SharedElementCallback;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
 
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * An activity representing a single Article detail screen, letting you swipe between articles.
@@ -35,8 +29,8 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     private static final String TAG = ArticleDetailActivity.class.getSimpleName();
 
-    public static String START_ARTICLE_POSITION = "start_article_position";
-    public static String SELECTED_ARTICLE_POSITION = "selected_article_position";
+    public static final String START_ARTICLE_POSITION = "start_article_position";
+    public static final String SELECTED_ARTICLE_POSITION = "selected_article_position";
 
     private Cursor mCursor;
     private long mStartId;
@@ -47,27 +41,6 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     private ViewPager mPager;
     private MyPagerAdapter mPagerAdapter;
-    private ArticleDetailFragment fragment;
-
-    private final SharedElementCallback sharedElementCallback = new SharedElementCallback() {
-        @Override
-        @TargetApi(21)
-        public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
-
-            if (fragment != null) {
-                ImageView sharedElement = fragment.getPhotoView();
-                if (sharedElement == null) {
-                    names.clear();
-                    sharedElements.clear();
-                } else if (mStartId != currentPosition) {
-                    names.clear();
-                    names.add(sharedElement.getTransitionName());
-                    sharedElements.clear();
-                    sharedElements.put(sharedElement.getTransitionName(), sharedElement);
-                }
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +82,7 @@ public class ArticleDetailActivity extends AppCompatActivity
                     mCursor.moveToPosition(position);
                     selectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
                     currentPosition = position;
+                    Log.d(TAG, "onPageSelected: startingPosition = " + startingPosition + " currentPosition = " + currentPosition + " selectedItemId = " + selectedItemId);
                 }
             }
 
@@ -130,9 +104,7 @@ public class ArticleDetailActivity extends AppCompatActivity
             currentPosition = savedInstanceState.getInt(SELECTED_ARTICLE_POSITION);
         }
 
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-//            setEnterSharedElementCallback(sharedElementCallback);
-//        }
+        Log.d(TAG, "onCreate: startingPosition = " + startingPosition + " currentPosition = " + currentPosition + " selectedItemId = " + selectedItemId);
     }
 
     @Override
@@ -151,21 +123,8 @@ public class ArticleDetailActivity extends AppCompatActivity
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
         mCursor = cursor;
         mPagerAdapter.notifyDataSetChanged();
-
-        // Select the start ID
-        if (mStartId > 0) {
-            mCursor.moveToFirst();
-            // TODO: optimize
-            while (!mCursor.isAfterLast()) {
-                if (mCursor.getLong(ArticleLoader.Query._ID) == mStartId) {
-                    final int position = mCursor.getPosition();
-                    mPager.setCurrentItem(position, false);
-                    break;
-            }
-                mCursor.moveToNext();
-    }
-            mStartId = 0;
-        }
+        mCursor.moveToPosition(currentPosition);
+        mPager.setCurrentItem(currentPosition, false);
     }
 
     @Override
@@ -180,15 +139,10 @@ public class ArticleDetailActivity extends AppCompatActivity
         }
 
         @Override
-        public void setPrimaryItem(ViewGroup container, int position, Object object) {
-            super.setPrimaryItem(container, position, object);
-            fragment = (ArticleDetailFragment) object;
-        }
-
-        @Override
         public Fragment getItem(int position) {
             mCursor.moveToPosition(position);
             final long id = mCursor.getLong(ArticleLoader.Query._ID);
+            Log.d(TAG, "getItem: position = " + position + " id = " + id);
             return ArticleDetailFragment.newInstance(id);
         }
 
